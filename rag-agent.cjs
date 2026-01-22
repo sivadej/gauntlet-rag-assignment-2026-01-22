@@ -1,8 +1,12 @@
 const { MongoClient } = require('mongodb');
 const { OpenAIEmbeddings, ChatOpenAI } = require('@langchain/openai');
-const { cosineSimilarity } = require('@langchain/core/utils/math');
 
 require('dotenv').config({ path: '.env.local' });
+
+const cliArgs = parseArgs();
+
+const openaiApiKey = process.env.OPENAI_API_KEY;
+const mongoUrl = process.env.MONGODB_URL;
 
 // Parse CLI arguments
 function parseArgs() {
@@ -28,10 +32,6 @@ function parseArgs() {
 	return result;
 }
 
-const cliArgs = parseArgs();
-
-const openaiApiKey = process.env.OPENAI_API_KEY;
-const mongoUrl = process.env.MONGODB_URL;
 
 // Retrieve top-k relevant chunks from MongoDB
 async function retrieveRelevantChunks(query, k = 5) {
@@ -42,16 +42,13 @@ async function retrieveRelevantChunks(query, k = 5) {
 	const db = client.db('supportdocs');
 	const collection = db.collection('embeddings');
 
-    console.log(JSON.stringify({queryEmbedding}));
-
-        // Use MongoDB vector search instead of loading all docs
     const results = await collection.aggregate([
         {
             $vectorSearch: {
                 index: "supportdocs_index",
                 path: "embedding",
                 queryVector: queryEmbedding,
-                numCandidates: 100,
+                numCandidates: 50,
                 limit: k
             }
         }
@@ -61,7 +58,6 @@ async function retrieveRelevantChunks(query, k = 5) {
     return results;
 }
 
-// Synthesize answer using OpenAI LLM
 async function synthesizeAnswer(query, contextChunks) {
 	const llm = new ChatOpenAI({ openAIApiKey: openaiApiKey, modelName: 'gpt-3.5-turbo', temperature: 0 });
 	const contextText = contextChunks.map((c, i) => `Context ${i+1}:\n${c.chunk}`).join('\n\n');
@@ -137,7 +133,7 @@ async function evaluateAnswerPrecision(question, contextChunks) {
 async function main() {
 	const defaultQuery = 'what features were released in february?';
 	const userQuery = cliArgs.query || defaultQuery;
-	const topChunks = await retrieveRelevantChunks(userQuery, 3);
+	const topChunks = await retrieveRelevantChunks(userQuery, 5);
 	console.log('Retrieved context chunks. Synthesizing answer...');
 	const answer = await synthesizeAnswer(userQuery, topChunks);
 	console.log('---\nUser question:', userQuery);
