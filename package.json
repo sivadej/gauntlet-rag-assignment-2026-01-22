@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@langchain/core": "^1.1.16",
+    "@langchain/openai": "^1.2.3",
+    "@langchain/textsplitters": "^1.0.1",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.3",
+    "html-to-text": "^9.0.5",
+    "langchain": "^1.2.11",
+    "mongodb": "^7.0.0",
+    "openai": "^6.16.0"
+  }
+}
